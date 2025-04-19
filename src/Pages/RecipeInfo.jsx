@@ -1,27 +1,27 @@
-
-
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import { IoMdBookmark } from "react-icons/io";
-import defaultRecipeImage from  '../assets/defaultRecipeImage.jpg';
+import defaultRecipeImage from '../assets/defaultRecipeImage.jpg';
 import { Clock } from 'lucide-react';
 import { HiMiniPencilSquare } from "react-icons/hi2";
 import BookmarkButton from "../Components/BookMarkButton";
 import Footer from "../Components/Footer";
 import { useAuthContext } from "../Context/AuthContext";
 import { RiCloseLargeLine } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
 
 const RecipeInfo = () => {
   const { RecipeId } = useParams();
   const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   const [recipe, setRecipe] = useState(null);
   const [recipeUser, setRecipeUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
+  const [isDeleting, setIsDeleting] = useState(false); // State for delete button
 
   // State for edited values
   const [newRecipeTitle, setNewRecipeTitle] = useState('');
@@ -131,6 +131,37 @@ const RecipeInfo = () => {
     }
   };
 
+  // Delete recipe
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`http://localhost:3000/recipe/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipeId: RecipeId,
+        })
+      });
+
+      if (response.ok) {
+        // Redirect to home page or another appropriate page
+        window.location.href = '/';
+      } else {
+        const data = await response.json();
+        console.error("Error deleting recipe:", data.message);
+      }
+    } catch (error) {
+      console.error("Error deleting recipe:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) return <div className="text-center text-gray-700 py-8">Loading...</div>;
   if (!recipe) return <div className="text-center text-gray-700 py-8">No recipe found.</div>;
 
@@ -171,44 +202,61 @@ const RecipeInfo = () => {
                   )}
                 </h1>
 
-                <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-
+                <div className="flex items-center flex-wrap gap-2 md:gap-4">
                   {isRecipeOwner && !isEditing ? (
-                    <button
-                      className="flex items-center px-4 py-2 ml-4 bg-gradient-to-r from-purple-500
-                         to-blue-600 text-white rounded-full shadow-lg hover:from-purple-600
-                          hover:to-blue-700 transition-all duration-300 ease-in-out"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <HiMiniPencilSquare className="mr-2" />
-                      Edit Recipe
-                    </button>
-                  ) : isRecipeOwner && isEditing ? (
-                    <>
+                    <div className="flex items-center">
                       <button
-                        className="flex items-center px-4 py-2 ml-4 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-full shadow-lg hover:from-purple-600 hover:to-blue-700 transition-all duration-300 ease-in-out"
+                        className="flex items-center px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-l-full shadow-lg hover:from-purple-600 hover:to-blue-700 transition-all duration-300 ease-in-out min-w-[80px]"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <HiMiniPencilSquare className="mr-1" />
+                        &nbsp;Edit
+                      </button>
+                      <button
+                        className="flex items-center px-2 py-2 bg-red-500 text-white rounded-r-full shadow-lg hover:bg-red-600 transition-all duration-300 ease-in-out min-w-[80px]"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <span className="animate-pulse">Deleting...</span>
+                        ) : (
+                          <>
+                            <RiCloseLargeLine className="mr-1" />
+                            Delete
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : isRecipeOwner && isEditing ? (
+                    <div className="flex items-center">
+                      <button
+                        className="flex items-center px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-l-full shadow-lg hover:from-purple-600 hover:to-blue-700 transition-all duration-300 ease-in-out min-w-[80px]"
                         onClick={saveEditedRecipe}
                       >
-                        Save Changes
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save
                       </button>
                       <button
-                        className="flex items-center px-4 py-2 ml-4 bg-gray-500 text-white rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300 ease-in-out"
+                        className="flex items-center px-2 py-2 bg-gray-500 text-white rounded-r-full shadow-lg hover:bg-gray-600 transition-all duration-300 ease-in-out min-w-[80px]"
                         onClick={cancelEditing}
                       >
-                        Cancel
+                        &nbsp;&nbsp;Cancel
                       </button>
-                    </>
+                    </div>
                   ) : (
-                    <BookmarkButton
-                      recipeId={RecipeId}
-                      userId={user._id}
-                      isBookmarked={isBookmarked}
-                    />
+                    <div className="flex items-center">
+                      <BookmarkButton
+                        recipeId={RecipeId}
+                        userId={user._id}
+                        isBookmarked={isBookmarked}
+                      />
+                    </div>
                   )}
 
-                  <span className="text-white bg-gray-800/90 px-3 py-1.5 rounded-full text-sm font-medium">
-                    {recipe.Bookmarks?.length || 0} bookmarks
-                  </span>
+                  {!isEditing && isRecipeOwner && (
+                    <span className="text-white bg-gray-800/90 px-3 py-1.5 rounded-full text-sm font-medium ml-4">
+                      {recipe.Bookmarks?.length || 0} bookmarks
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
