@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import { IoMdBookmark } from "react-icons/io";
 import defaultRecipeImage from '../assets/defaultRecipeImage.jpg';
@@ -15,13 +15,17 @@ const RecipeInfo = () => {
   const { RecipeId } = useParams();
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [recipe, setRecipe] = useState(null);
   const [recipeUser, setRecipeUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false); // State for delete button
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(
+    location.state?.isEditing || false
+  );
+
 
   // State for edited values
   const [newRecipeTitle, setNewRecipeTitle] = useState('');
